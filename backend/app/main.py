@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from backend.app.database import supabase
 
 app = FastAPI(
     title="EarningsEdge API",
@@ -18,3 +19,8 @@ def health():
     return {
         "status": "healthy"
     }
+
+@app.get("/test-db")
+def test_database():
+    response = supabase.table("companies").select("*").limit(5).execute()
+    return response.data
