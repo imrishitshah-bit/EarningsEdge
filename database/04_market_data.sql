@@ -23,6 +23,7 @@ CREATE TABLE market_data (
 
     sma50 NUMERIC,
 
-    volatility NUMERIC
-    UNIQUE(company_id, trading_date)
+    volatility NUMERIC,
+
+    UNIQUE (company_id, trading_date)
 );

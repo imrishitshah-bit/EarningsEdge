@@ -19,6 +19,7 @@ CREATE TABLE earnings (
 
     guidance TEXT,
 
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+
     UNIQUE (company_id, earnings_date)
 );
