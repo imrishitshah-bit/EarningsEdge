@@ -25,64 +25,96 @@ def calculate_macd(close):
     return ema12 - ema26
 
 
-companies = (
-    supabase.table("companies")
-    .select("id,ticker")
-    .execute()
-    .data
-)
+def fetch_all_market_data(company_id):
+    rows = []
+    start = 0
+    page_size = 1000
 
-for company in companies:
+    while True:
+        batch = (
+            supabase.table("market_data")
+            .select("*")
+            .eq("company_id", company_id)
+            .order("trading_date")
+            .range(start, start + page_size - 1)
+            .execute()
+            .data
+        )
 
-    print(f"Processing {company['ticker']}")
+        if not batch:
+            break
 
-    rows = (
-        supabase.table("market_data")
-        .select("*")
-        .eq("company_id", company["id"])
-        .order("trading_date")
+        rows.extend(batch)
+
+        print(f"    Loaded {len(rows)} rows...")
+
+        if len(batch) < page_size:
+            break
+
+        start += page_size
+
+    return rows
+
+
+def main():
+    companies = (
+        supabase.table("companies")
+        .select("id,ticker")
         .execute()
         .data
     )
 
-    if len(rows) < 50:
-        continue
+    all_updates = []
 
-    df = pd.DataFrame(rows)
+    for company in companies:
 
-    df["close"] = df["close"].astype(float)
+        print(f"\nProcessing {company['ticker']}")
 
-    df["rsi"] = calculate_rsi(df["close"])
+        rows = fetch_all_market_data(company["id"])
 
-    df["sma20"] = df["close"].rolling(20).mean()
+        print(f"Total rows: {len(rows)}")
 
-    df["sma50"] = df["close"].rolling(50).mean()
+        if len(rows) < 60:
+            continue
 
-    df["macd"] = calculate_macd(df["close"])
+        df = pd.DataFrame(rows)
 
-    df["volatility"] = (
-        df["close"]
-        .pct_change()
-        .rolling(20)
-        .std()
-        * np.sqrt(252)
-    )
+        df["close"] = df["close"].astype(float)
 
-    for _, row in df.iterrows():
+        df["rsi"] = calculate_rsi(df["close"])
+        df["macd"] = calculate_macd(df["close"])
+        df["sma20"] = df["close"].rolling(20).mean()
+        df["sma50"] = df["close"].rolling(50).mean()
 
-        (
-            supabase.table("market_data")
-            .update(
-                {
-                    "rsi": None if pd.isna(row["rsi"]) else float(row["rsi"]),
-                    "macd": None if pd.isna(row["macd"]) else float(row["macd"]),
-                    "sma20": None if pd.isna(row["sma20"]) else float(row["sma20"]),
-                    "sma50": None if pd.isna(row["sma50"]) else float(row["sma50"]),
-                    "volatility": None if pd.isna(row["volatility"]) else float(row["volatility"]),
-                }
-            )
-            .eq("id", int(row["id"]))
-            .execute()
+        df["volatility"] = (
+            df["close"]
+            .pct_change()
+            .rolling(20)
+            .std()
+            * np.sqrt(252)
         )
 
-print("Done.")
+        updates = df[
+            [
+                "id",
+                "rsi",
+                "macd",
+                "sma20",
+                "sma50",
+                "volatility",
+            ]
+        ]
+
+        all_updates.append(updates)
+
+    final_df = pd.concat(all_updates, ignore_index=True)
+
+    final_df.to_csv("indicator_updates.csv", index=False)
+
+    print()
+    print(f"Saved {len(final_df)} indicator rows.")
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()

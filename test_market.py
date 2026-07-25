@@ -1,18 +1,9 @@
-import requests
+import pandas as pd
+import numpy as np
 
-from scripts.config import FMP_API_KEY
+df = pd.read_csv("indicator_updates.csv")
 
-url = (
-    "https://financialmodelingprep.com/stable/historical-price-eod/full"
-    f"?symbol=AAPL&apikey={FMP_API_KEY}"
-)
+print(df[df.isna().any(axis=1)].head(20))
 
-response = requests.get(url)
-response.raise_for_status()
-
-data = response.json()
-
-print(type(data))
-print(len(data))
-
-print(data[0])
+print("\nNaN counts:")
+print(df.isna().sum())
