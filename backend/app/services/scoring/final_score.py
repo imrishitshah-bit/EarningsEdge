@@ -4,17 +4,18 @@ from backend.app.services.scoring.risk_score import risk_score
 from backend.app.services.scoring.momentum_score import momentum_score
 from backend.app.services.scoring.trend_score import trend_score
 from backend.app.services.scoring.relative_strength import relative_strength_score
+from backend.app.services.scoring.historical_score import historical_score
 
 
-def calculate_score(company, earnings, market):
+def calculate_score(company, earnings, market, history=None):
     """
     Returns:
-        {
-            score,
-            confidence,
-            reasons,
-            breakdown
-        }
+    {
+        score,
+        confidence,
+        reasons,
+        breakdown
+    }
     """
 
     reasons = []
@@ -29,6 +30,7 @@ def calculate_score(company, earnings, market):
     momentum, m_reasons = momentum_score(market)
     trend, trend_reasons = trend_score(market)
     relative_strength, rs_reasons = relative_strength_score(market)
+    historical, h_reasons = historical_score(history)
 
     reasons.extend(f_reasons)
     reasons.extend(t_reasons)
@@ -36,6 +38,7 @@ def calculate_score(company, earnings, market):
     reasons.extend(m_reasons)
     reasons.extend(trend_reasons)
     reasons.extend(rs_reasons)
+    reasons.extend(h_reasons)
 
     # ----------------------------
     # Normalize
@@ -47,9 +50,14 @@ def calculate_score(company, earnings, market):
     momentum_pct = (momentum / 22) * 100
     trend_pct = (trend / 20) * 100
     relative_pct = (relative_strength / 10) * 100
+    historical_pct = (historical / 20) * 100
 
-    historical_pct = 50
+    # Placeholder until we build sentiment
     sentiment_pct = 50
+
+    # ----------------------------
+    # Final Score
+    # ----------------------------
 
     final_score = (
         fundamental_pct * 0.30 +
@@ -96,7 +104,7 @@ def calculate_score(company, earnings, market):
         "trend": round(trend, 2),
         "relative_strength": round(relative_strength, 2),
         "risk": round(risk, 2),
-        "historical": historical_pct,
+        "historical": round(historical, 2),
         "sentiment": sentiment_pct,
     }
 
