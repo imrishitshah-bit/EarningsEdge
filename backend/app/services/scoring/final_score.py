@@ -1,8 +1,8 @@
-from backend.app.services.scoring.fundamental_score import fundamental_score
+from backend.app.services.scoring.expectation_score import expectation_score
+from backend.app.services.scoring.expectation_risk import expectation_risk
 from backend.app.services.scoring.technical_score import technical_score
 from backend.app.services.scoring.risk_score import risk_score
 from backend.app.services.scoring.momentum_score import momentum_score
-from backend.app.services.scoring.trend_score import trend_score
 from backend.app.services.scoring.relative_strength import relative_strength_score
 from backend.app.services.scoring.historical_score import historical_score
 
@@ -20,96 +20,139 @@ def calculate_score(company, earnings, market, history=None):
 
     reasons = []
 
-    # ----------------------------
+    # ------------------------------------
     # Individual Scores
-    # ----------------------------
+    # ------------------------------------
 
-    fundamental, f_reasons = fundamental_score(earnings)
-    technical, t_reasons = technical_score(market)
-    risk, r_reasons = risk_score(market)
-    momentum, m_reasons = momentum_score(market)
-    trend, trend_reasons = trend_score(market)
-    relative_strength, rs_reasons = relative_strength_score(market)
-    historical, h_reasons = historical_score(history)
-
-    reasons.extend(f_reasons)
-    reasons.extend(t_reasons)
-    reasons.extend(r_reasons)
-    reasons.extend(m_reasons)
-    reasons.extend(trend_reasons)
-    reasons.extend(rs_reasons)
-    reasons.extend(h_reasons)
-
-    # ----------------------------
-    # Normalize
-    # ----------------------------
-
-    fundamental_pct = (fundamental / 30) * 100
-    technical_pct = (technical / 30) * 100
-    risk_pct = (risk / 15) * 100
-    momentum_pct = (momentum / 22) * 100
-    trend_pct = (trend / 20) * 100
-    relative_pct = (relative_strength / 10) * 100
-    historical_pct = (historical / 20) * 100
-
-    # Placeholder until we build sentiment
-    sentiment_pct = 50
-
-    # ----------------------------
-    # Final Score
-    # ----------------------------
-
-    final_score = (
-        fundamental_pct * 0.30 +
-        technical_pct * 0.20 +
-        momentum_pct * 0.15 +
-        trend_pct * 0.10 +
-        relative_pct * 0.05 +
-        risk_pct * 0.10 +
-        historical_pct * 0.05 +
-        sentiment_pct * 0.05
+    expectation = expectation_score(company, earnings)
+    expectation_risk_data = expectation_risk(
+        company,
+        market,
+        earnings,
     )
 
-    final_score = round(max(0, min(100, final_score)))
+    technical = technical_score(market)
+    risk = risk_score(market)
+    momentum = momentum_score(market)
+    relative = relative_strength_score(market)
+    historical = historical_score(history)
 
-    # ----------------------------
+    expectation_score_value = expectation["score"]
+    expectation_risk_value = expectation_risk_data["score"]
+    technical_score_value = technical["score"]
+    risk_score_value = risk["score"]
+    momentum_score_value = momentum["score"]
+    relative_score_value = relative["score"]
+    historical_score_value = historical["score"]
+
+    reasons.extend(expectation["reasons"])
+    reasons.extend(expectation_risk_data["reasons"])
+    reasons.extend(technical["reasons"])
+    reasons.extend(risk["reasons"])
+    reasons.extend(momentum["reasons"])
+    reasons.extend(relative["reasons"])
+    reasons.extend(historical["reasons"])
+
+    # ------------------------------------
+    # Sentiment
+    # ------------------------------------
+
+    sentiment_score = 5
+
+    # ------------------------------------
+    # Business Quality
+    # ------------------------------------
+
+    business_quality = (
+        expectation_score_value
+        + technical_score_value
+        + historical_score_value
+        + momentum_score_value
+        + risk_score_value
+        + relative_score_value
+    )
+
+    business_quality = min(95, business_quality)
+
+    # ------------------------------------
+    # Final Upside Score
+    # ------------------------------------
+
+    final_score = (
+        business_quality
+        - expectation_risk_value
+        + sentiment_score
+    )
+
+    final_score = max(
+        0,
+        min(100, round(final_score))
+    )
+
+    # ------------------------------------
     # Confidence
-    # ----------------------------
+    # ------------------------------------
 
-    if final_score >= 90:
+    confidence_points = 100
+
+    if history is None or len(history) < 4:
+        confidence_points -= 20
+
+    if market is None:
+        confidence_points -= 20
+
+    if earnings is None:
+        confidence_points -= 20
+
+    if confidence_points >= 90:
         confidence = "Very High"
-    elif final_score >= 80:
+
+    elif confidence_points >= 75:
         confidence = "High"
-    elif final_score >= 65:
+
+    elif confidence_points >= 60:
         confidence = "Medium"
-    elif final_score >= 50:
+
+    elif confidence_points >= 40:
         confidence = "Low"
+
     else:
         confidence = "Very Low"
 
-    # ----------------------------
-    # Remove duplicate reasons
-    # ----------------------------
+    # ------------------------------------
+    # Remove Duplicate Reasons
+    # ------------------------------------
 
     unique_reasons = []
 
     for reason in reasons:
+
         if reason not in unique_reasons:
             unique_reasons.append(reason)
 
+    # ------------------------------------
+    # Breakdown
+    # ------------------------------------
+
     breakdown = {
-        "fundamental": round(fundamental, 2),
-        "technical": round(technical, 2),
-        "momentum": round(momentum, 2),
-        "trend": round(trend, 2),
-        "relative_strength": round(relative_strength, 2),
-        "risk": round(risk, 2),
-        "historical": round(historical, 2),
-        "sentiment": sentiment_pct,
+        "business_quality": business_quality,
+        "expectation_risk": expectation_risk_value,
+        "technical": technical_score_value,
+        "historical": historical_score_value,
+        "momentum": momentum_score_value,
+        "risk": risk_score_value,
+        "relative_strength": relative_score_value,
+        "sentiment": sentiment_score,
     }
+
+    # ------------------------------------
+    # Return
+    # ------------------------------------
 
     return {
         "score": final_score,
+        "business_quality": business_quality,
+        "expectation_risk": expectation_risk_value,
         "confidence": confidence,
         "reasons": unique_reasons,
         "breakdown": breakdown,

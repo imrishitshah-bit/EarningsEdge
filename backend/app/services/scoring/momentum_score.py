@@ -1,49 +1,93 @@
-def momentum_score(technical):
-    if technical is None:
-        return 0, ["No momentum data"]
+def momentum_score(market):
+    """
+    Scores momentum (0-10)
+
+    Rewards healthy trends but penalizes
+    stocks that have become too extended.
+    """
+
+    if market is None:
+        return {
+            "score": 0,
+            "reasons": ["No momentum data"],
+        }
 
     score = 0
     reasons = []
 
-    close = technical.get("close")
-    sma20 = technical.get("sma20")
-    sma50 = technical.get("sma50")
-    macd = technical.get("macd")
-    rsi = technical.get("rsi")
+    close = market.get("close")
+    sma20 = market.get("sma20")
+    sma50 = market.get("sma50")
+    macd = market.get("macd")
+    rsi = market.get("rsi")
 
-    if close is not None and sma20 is not None:
-        distance20 = (close - sma20) / sma20
+    # -------------------------
+    # Price vs SMA20
+    # -------------------------
 
-        if distance20 > 0.05:
-            score += 8
-            reasons.append("Strong momentum above SMA20")
-        elif distance20 > 0:
-            score += 5
-            reasons.append("Above SMA20")
+    if close and sma20:
 
-    if close is not None and sma50 is not None:
-        distance50 = (close - sma50) / sma50
+        pct = (close - sma20) / sma20
 
-        if distance50 > 0.10:
-            score += 8
-            reasons.append("Strong long-term trend")
-        elif distance50 > 0:
-            score += 5
-            reasons.append("Above SMA50")
+        if 0 < pct <= 0.05:
+            score += 4
+            reasons.append("Healthy short-term momentum")
 
-    if macd is not None and macd > 0:
-        score += 6
-        reasons.append("Bullish MACD")
+        elif 0.05 < pct <= 0.10:
+            score += 3
+
+        elif pct > 0.15:
+            score -= 2
+            reasons.append("Momentum extended")
+
+    # -------------------------
+    # Price vs SMA50
+    # -------------------------
+
+    if close and sma50:
+
+        pct = (close - sma50) / sma50
+
+        if 0 < pct <= 0.10:
+            score += 2
+
+        elif pct > 0.20:
+            score -= 1
+
+    # -------------------------
+    # MACD
+    # -------------------------
+
+    if macd is not None:
+
+        if macd > 2:
+            score += 2
+
+        elif macd > 0:
+            score += 1
+
+    # -------------------------
+    # RSI
+    # -------------------------
 
     if rsi is not None:
-        if 50 <= rsi <= 65:
-            score += 8
-            reasons.append("Healthy RSI")
-        elif 40 <= rsi < 50:
-            score += 5
-            reasons.append("Recovering RSI")
-        elif rsi > 75:
-            score -= 5
-            reasons.append("Overbought")
 
-    return max(score, 0), reasons
+        if 50 <= rsi <= 60:
+            score += 2
+
+        elif 60 < rsi <= 70:
+            score += 1
+
+        elif rsi > 75:
+            score -= 2
+            reasons.append("Overextended momentum")
+
+        elif rsi < 30:
+            score -= 1
+
+    score = max(0, min(score, 10))
+
+    return {
+        "score": score,
+        "reasons": reasons,
+    }

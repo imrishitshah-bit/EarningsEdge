@@ -1,10 +1,16 @@
 def historical_score(history):
     """
     Scores historical earnings performance (0-20)
+
+    Rewards consistency over lucky quarters.
     """
 
     if not history:
-        return 5, ["No historical earnings available."]
+
+        return {
+            "score": 5,
+            "reasons": ["No historical earnings available"],
+        }
 
     score = 0
     reasons = []
@@ -12,92 +18,111 @@ def historical_score(history):
     total = len(history)
 
     eps_beats = sum(
-        1 for h in history
-        if h["beat_eps"] is True
+        1
+        for row in history
+        if row["beat_eps"]
     )
 
     beat_rate = eps_beats / total
 
-    # ------------------------
+    # -----------------------------
     # Beat Rate
-    # ------------------------
+    # -----------------------------
 
-    if beat_rate >= 0.80:
-        score += 8
+    if beat_rate >= 0.90:
+
+        score += 9
+        reasons.append("Exceptional EPS beat history")
+
+    elif beat_rate >= 0.75:
+
+        score += 7
         reasons.append(
-            f"Beat EPS in {eps_beats} of last {total} quarters"
+            f"Beat EPS in {eps_beats} of last {total}"
         )
 
     elif beat_rate >= 0.60:
-        score += 6
-        reasons.append(
-            "Strong EPS beat history"
-        )
+
+        score += 5
+        reasons.append("Strong earnings consistency")
 
     elif beat_rate >= 0.40:
-        score += 4
+
+        score += 3
 
     else:
-        score += 1
-        reasons.append(
-            "Weak earnings beat history"
-        )
 
-    # ------------------------
+        score += 1
+        reasons.append("Weak earnings history")
+
+    # -----------------------------
     # Average Surprise
-    # ------------------------
+    # -----------------------------
 
     surprises = [
-        h["eps_surprise"]
-        for h in history
-        if h["eps_surprise"] is not None
+        row["eps_surprise"]
+        for row in history
+        if row["eps_surprise"] is not None
     ]
 
     if surprises:
 
         avg = sum(surprises) / len(surprises)
 
-        if avg >= 15:
-            score += 7
+        if avg >= 20:
+
+            score += 6
             reasons.append(
                 f"Average EPS surprise +{avg:.1f}%"
             )
 
-        elif avg >= 5:
+        elif avg >= 10:
+
             score += 5
             reasons.append(
                 f"Average EPS surprise +{avg:.1f}%"
             )
 
-        elif avg >= 0:
+        elif avg >= 5:
+
             score += 3
 
-        else:
-            score += 1
+        elif avg < -5:
+
+            score -= 2
             reasons.append(
-                "Negative average EPS surprise"
+                "Negative surprise history"
             )
 
-    # ------------------------
-    # Consecutive Beats
-    # ------------------------
+    # -----------------------------
+    # Beat Streak
+    # -----------------------------
 
     streak = 0
 
-    for h in history:
+    for row in history:
 
-        if h["beat_eps"]:
+        if row["beat_eps"]:
             streak += 1
         else:
             break
 
-    if streak >= 4:
-        score += 5
-        reasons.append(
-            f"{streak} consecutive EPS beats"
-        )
+    if streak >= 8:
 
-    elif streak >= 2:
         score += 3
+        reasons.append("8 consecutive EPS beats")
 
-    return min(score, 20), reasons
+    elif streak >= 6:
+
+        score += 2
+
+    elif streak >= 4:
+
+        score += 1
+
+    score = max(0, min(score, 20))
+
+    return {
+        "score": score,
+        "reasons": reasons,
+    }

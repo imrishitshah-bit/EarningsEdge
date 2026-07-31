@@ -1,5 +1,9 @@
 from backend.app.database import supabase
 from backend.app.services.scoring.final_score import calculate_score
+from backend.app.services.scoring.expected_move import expected_move
+from backend.app.services.scoring.probability import probability
+from backend.app.services.scenario_service import scenarios
+from backend.app.services.scoring.price_target import price_target
 
 
 def get_score(ticker: str):
@@ -121,6 +125,40 @@ def get_score(ticker: str):
     reasons = result["reasons"]
     breakdown = result["breakdown"]
 
+    # ---------------------------------
+    # Expected Move
+    # ---------------------------------
+
+    move_data = expected_move(
+        market,
+        history,
+    )
+
+    move = move_data["move"]
+    move_confidence = move_data["confidence"]
+
+    # ---------------------------------
+    # Probability
+    # ---------------------------------
+
+    prob = probability(score)
+
+    # ---------------------------------
+    # Bull / Base / Bear
+    # ---------------------------------
+
+    cases = scenarios(move)
+
+    # ---------------------------------
+    # Target Price
+    # ---------------------------------
+
+    target = price_target(
+        market["close"],
+        score,
+        move,
+    )
+
     positives = [
         r for r in reasons
         if not any(
@@ -142,9 +180,12 @@ def get_score(ticker: str):
     ]
 
     return {
+
         "ticker": company["ticker"],
         "company_name": company["company_name"],
+
         "ai_score": score,
+
         "grade": (
             "A+"
             if score >= 95 else
@@ -160,7 +201,9 @@ def get_score(ticker: str):
             if score >= 70 else
             "C"
         ),
+
         "confidence": confidence,
+
         "recommendation": (
             "Strong Buy"
             if score >= 90 else
@@ -170,6 +213,7 @@ def get_score(ticker: str):
             if score >= 65 else
             "Avoid"
         ),
+
         "risk_level": (
             "Low"
             if market["volatility"] < 0.35 else
@@ -177,20 +221,38 @@ def get_score(ticker: str):
             if market["volatility"] < 0.60 else
             "High"
         ),
+
         "summary": (
-            f"{company['ticker']} has an AI Score of {score}/100 with "
-            f"{confidence.lower()} confidence. "
-            f"The stock currently shows {len(positives)} positive signals "
-            f"and {len(negatives)} cautionary signals heading into earnings."
+            f"{company['ticker']} has an AI Score of {score}/100 "
+            f"with {confidence.lower()} confidence. "
+            f"The stock currently shows "
+            f"{len(positives)} positive signals and "
+            f"{len(negatives)} cautionary signals heading into earnings."
         ),
+
         "strengths": positives,
         "weaknesses": negatives,
+
         "reasons": reasons,
         "breakdown": breakdown,
+
+        "probability": prob,
+
+        "expected_move": move,
+        "expected_move_confidence": move_confidence,
+
+        "bull_case": cases["bull"],
+        "base_case": cases["base"],
+        "bear_case": cases["bear"],
+
+        "target_price": target,
+
         "earnings_date": earnings["earnings_date"],
         "eps_estimate": earnings["eps_estimate"],
         "revenue_estimate": earnings["revenue_estimate"],
+
         "technical": {
+
             "close": market["close"],
             "rsi": market["rsi"],
             "macd": market["macd"],
@@ -198,19 +260,31 @@ def get_score(ticker: str):
             "sma50": market["sma50"],
             "volatility": market["volatility"],
             "trading_date": market["trading_date"],
+
         },
+
         "historical": {
+
             "quarters_analyzed": len(history),
+
             "eps_beats": sum(
-                1 for h in history if h["beat_eps"]
+                1
+                for h in history
+                if h["beat_eps"]
             ),
+
             "average_surprise": round(
+
                 sum(
                     h["eps_surprise"]
                     for h in history
                     if h["eps_surprise"] is not None
-                ) / max(
+                )
+
+                / max(
+
                     1,
+
                     len(
                         [
                             h
@@ -218,8 +292,13 @@ def get_score(ticker: str):
                             if h["eps_surprise"] is not None
                         ]
                     ),
+
                 ),
+
                 2,
+
             ),
+
         },
+
     }
