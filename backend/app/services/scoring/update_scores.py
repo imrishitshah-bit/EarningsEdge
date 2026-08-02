@@ -1,5 +1,4 @@
-from datetime import datetime
-
+from datetime import datetime, timedelta, timezone
 from backend.app.database import supabase
 from backend.app.services.score_service import get_score
 def update_company_score(company_id: int, ticker: str):
@@ -32,13 +31,17 @@ def update_all_scores():
     # Get Companies Reporting Soon
     # ---------------------------------
 
-    earnings = (
-        supabase.table("earnings")
-        .select("company_id")
-        .execute()
-        .data
-    )
+    today = datetime.now(timezone.utc).isoformat()
+    end_date = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
 
+    earnings = (
+    supabase.table("earnings")
+    .select("company_id")
+    .gte("earnings_date", today)
+    .lte("earnings_date", end_date)
+    .execute()
+    .data
+    )
     company_ids = list(
         {
             row["company_id"]
@@ -189,7 +192,7 @@ def update_all_scores():
             "technical": stock["technical"],
             "historical": stock["historical"],
 
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
 
         }
 
@@ -204,7 +207,7 @@ def update_all_scores():
         history_record.pop("rank", None)
         history_record.pop("updated_at", None)
 
-        history_record["created_at"] = datetime.utcnow().isoformat()
+        history_record["created_at"] = datetime.now(timezone.utc).isoformat(),
 
         (
             supabase.table("score_history")

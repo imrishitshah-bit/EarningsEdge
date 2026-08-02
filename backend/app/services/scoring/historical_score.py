@@ -2,14 +2,19 @@ def historical_score(history):
     """
     Scores historical earnings performance (0-20)
 
-    Rewards consistency over lucky quarters.
+    Requires at least 4 quarters of history before
+    contributing to the AI score.
     """
 
-    if not history:
+    # ---------------------------------
+    # Not enough history
+    # ---------------------------------
+
+    if not history or len(history) < 4:
 
         return {
-            "score": 5,
-            "reasons": ["No historical earnings available"],
+            "score": 0,
+            "reasons": [],
         }
 
     score = 0

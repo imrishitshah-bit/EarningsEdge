@@ -4,7 +4,7 @@ from backend.app.services.scoring.expected_move import expected_move
 from backend.app.services.scoring.probability import probability
 from backend.app.services.scenario_service import scenarios
 from backend.app.services.scoring.price_target import price_target
-
+from datetime import datetime, timezone
 
 def get_score(ticker: str):
 
@@ -29,15 +29,17 @@ def get_score(ticker: str):
     # Upcoming Earnings
     # ---------------------------------
 
+    today = datetime.now(timezone.utc).date().isoformat()
     earnings_result = (
-        supabase.table("earnings")
-        .select("*")
-        .eq("company_id", company["id"])
-        .order("earnings_date")
-        .limit(1)
-        .execute()
+    supabase.table("earnings")
+    .select("*")
+    .eq("company_id", company["id"])
+    .gte("earnings_date", today)
+    .order("earnings_date")
+    .limit(1)
+    .execute()
     )
-
+    
     if not earnings_result.data:
         return {
             "ticker": company["ticker"],
