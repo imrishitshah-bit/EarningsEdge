@@ -1,58 +1,69 @@
 def risk_score(market):
     """
-    Scores risk (0-10)
+    Risk Score (0-100)
 
-    Moderate volatility is preferred for earnings trades.
-    Extremely high volatility is penalized.
-    Extremely low volatility gets a small penalty because
-    expected moves are often limited.
+    Scores volatility for earnings trading.
+
+    Moderate volatility is preferred.
+    Extremely low or extremely high
+    volatility receives lower scores.
     """
 
     if market is None:
         return {
-            "score": 5,
-            "reasons": ["Missing market data"],
+            "score": 50,
+            "reasons": ["No volatility data"],
         }
 
     volatility = market.get("volatility")
 
     if volatility is None:
+
         return {
-            "score": 5,
+            "score": 50,
             "reasons": ["Missing volatility"],
         }
 
     reasons = []
 
-    if volatility < 0.20:
+    # ---------------------------------
+    # Volatility
+    # ---------------------------------
 
-        score = 5
-        reasons.append("Very low volatility")
+    if 0.30 <= volatility <= 0.50:
 
-    elif volatility < 0.35:
-
-        score = 8
-        reasons.append("Stable volatility")
-
-    elif volatility < 0.55:
-
-        score = 10
+        score = 100
         reasons.append("Ideal earnings volatility")
 
-    elif volatility < 0.75:
+    elif 0.20 <= volatility < 0.30:
 
-        score = 8
+        score = 90
+        reasons.append("Low volatility")
+
+    elif 0.50 < volatility <= 0.65:
+
+        score = 80
+        reasons.append("Higher volatility with good upside")
+
+    elif 0.10 <= volatility < 0.20:
+
+        score = 65
+        reasons.append("Very stable")
+
+    elif 0.65 < volatility <= 0.80:
+
+        score = 55
         reasons.append("Elevated volatility")
 
-    elif volatility < 1.00:
+    elif volatility > 0.80:
 
-        score = 5
-        reasons.append("High volatility")
+        score = 25
+        reasons.append("Extremely volatile")
 
     else:
 
-        score = 2
-        reasons.append("Extremely volatile")
+        score = 40
+        reasons.append("Unusually low volatility")
 
     return {
         "score": score,

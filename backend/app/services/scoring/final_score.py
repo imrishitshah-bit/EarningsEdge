@@ -3,7 +3,7 @@ from backend.app.services.scoring.expectation_risk import expectation_risk
 from backend.app.services.scoring.technical_score import technical_score
 from backend.app.services.scoring.risk_score import risk_score
 from backend.app.services.scoring.momentum_score import momentum_score
-from backend.app.services.scoring.relative_strength import relative_strength_score
+from backend.app.services.scoring.relative_strength_score import relative_strength_score
 from backend.app.services.scoring.historical_score import historical_score
 
 

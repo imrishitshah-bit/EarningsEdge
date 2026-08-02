@@ -1,139 +1,110 @@
-import numpy as np
-import pandas as pd
+def calculate_score(company, earnings, market, history=None):
+    """
+    Calculates the final EarningsEdge Score (0-100)
+    using weighted category scores.
+    """
+    from backend.app.services.scoring.expectation_score import expectation_score
+    from backend.app.services.scoring.technical_score import technical_score
+    from backend.app.services.scoring.momentum_score import momentum_score
+    from backend.app.services.scoring.risk_score import risk_score
+    from backend.app.services.scoring.historical_score import historical_score
+    from backend.app.services.scoring.relative_strength_score import relative_strength_score
+    reasons = []
 
-from scripts.config import supabase
+    # ------------------------------------
+    # Individual Modules
+    # ------------------------------------
 
+    business = expectation_score(company, earnings)
+    historical = historical_score(history)
+    technical = technical_score(market)
+    momentum = momentum_score(market)
+    risk = risk_score(market)
+    relative = relative_strength_score(market)
 
-def calculate_rsi(close, period=14):
-    delta = close.diff()
+    reasons.extend(business["reasons"])
+    reasons.extend(historical["reasons"])
+    reasons.extend(technical["reasons"])
+    reasons.extend(momentum["reasons"])
+    reasons.extend(risk["reasons"])
+    reasons.extend(relative["reasons"])
 
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
+    # ------------------------------------
+    # Weighted Final Score
+    # ------------------------------------
 
-    avg_gain = gain.rolling(period).mean()
-    avg_loss = loss.rolling(period).mean()
+    weights = {
+        "business": 0.25,
+        "historical": 0.25,
+        "technical": 0.20,
+        "momentum": 0.15,
+        "risk": 0.10,
+        "relative": 0.05,
+    }
 
-    rs = avg_gain / avg_loss
-
-    return 100 - (100 / (1 + rs))
-
-
-def calculate_macd(close):
-    ema12 = close.ewm(span=12, adjust=False).mean()
-    ema26 = close.ewm(span=26, adjust=False).mean()
-
-    return ema12 - ema26
-
-
-def fetch_all_market_data(company_id):
-    rows = []
-    start = 0
-    page_size = 1000
-
-    while True:
-        batch = (
-            supabase.table("market_data")
-            .select("*")
-            .eq("company_id", company_id)
-            .order("trading_date")
-            .range(start, start + page_size - 1)
-            .execute()
-            .data
-        )
-
-        if not batch:
-            break
-
-        rows.extend(batch)
-
-        print(f"    Loaded {len(rows)} rows...")
-
-        if len(batch) < page_size:
-            break
-
-        start += page_size
-
-    return rows
-def calculate_indicators(company_id: int, ticker: str):
-
-    print(f"\nProcessing {ticker}")
-
-    rows = fetch_all_market_data(company_id)
-
-    print(f"Total rows: {len(rows)}")
-
-    if len(rows) < 60:
-        return None
-
-    df = pd.DataFrame(rows)
-
-    df["close"] = df["close"].astype(float)
-
-    df["rsi"] = calculate_rsi(df["close"])
-    df["macd"] = calculate_macd(df["close"])
-    df["sma20"] = df["close"].rolling(20).mean()
-    df["sma50"] = df["close"].rolling(50).mean()
-
-    df["volatility"] = (
-        df["close"]
-        .pct_change()
-        .rolling(20)
-        .std()
-        * np.sqrt(252)
+    final_score = (
+        business["score"] * weights["business"]
+        + historical["score"] * weights["historical"]
+        + technical["score"] * weights["technical"]
+        + momentum["score"] * weights["momentum"]
+        + risk["score"] * weights["risk"]
+        + relative["score"] * weights["relative"]
     )
 
-    updates = df[
-        [
-            "id",
-            "rsi",
-            "macd",
-            "sma20",
-            "sma50",
-            "volatility",
-        ]
-    ]
+    final_score = round(final_score)
 
-    return updates
+    # ------------------------------------
+    # Confidence
+    # ------------------------------------
 
-def main():
+    confidence_points = 100
 
-    companies = (
-        supabase.table("companies")
-        .select("id,ticker")
-        .execute()
-        .data
-    )
+    if history is None or len(history) < 4:
+        confidence_points -= 20
 
-    all_updates = []
+    if market is None:
+        confidence_points -= 20
 
-    for company in companies:
+    if earnings is None:
+        confidence_points -= 20
 
-        try:
+    if confidence_points >= 90:
+        confidence = "Very High"
+    elif confidence_points >= 75:
+        confidence = "High"
+    elif confidence_points >= 60:
+        confidence = "Medium"
+    elif confidence_points >= 40:
+        confidence = "Low"
+    else:
+        confidence = "Very Low"
 
-            updates = calculate_indicators(
-                company["id"],
-                company["ticker"],
-            )
+    # ------------------------------------
+    # Remove Duplicate Reasons
+    # ------------------------------------
 
-            if updates is not None:
-                all_updates.append(updates)
+    unique_reasons = []
 
-        except Exception as e:
+    for reason in reasons:
+        if reason not in unique_reasons:
+            unique_reasons.append(reason)
 
-            print(f"Error processing {company['ticker']}")
-            print(e)
+    # ------------------------------------
+    # Breakdown
+    # ------------------------------------
 
-    if not all_updates:
-        print("No indicators calculated.")
-        return
+    breakdown = {
+        "business_quality": business["score"],
+        "historical": historical["score"],
+        "technical": technical["score"],
+        "momentum": momentum["score"],
+        "risk": risk["score"],
+        "relative_strength": relative["score"],
+    }
 
-    final_df = pd.concat(all_updates, ignore_index=True)
-
-    final_df.to_csv("indicator_updates.csv", index=False)
-
-    print()
-    print(f"Saved {len(final_df)} indicator rows.")
-    print("Done.")
-
-if __name__ == "__main__":
-    main()
+    return {
+        "score": final_score,
+        "confidence": confidence,
+        "reasons": unique_reasons,
+        "breakdown": breakdown,
+    }
