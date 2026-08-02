@@ -1,10 +1,11 @@
 def risk_score(market):
     """
-    Scores risk (0-15)
+    Scores risk (0-10)
 
-    Lower volatility earns a higher score.
-    Extremely volatile stocks receive
-    significantly lower scores.
+    Moderate volatility is preferred for earnings trades.
+    Extremely high volatility is penalized.
+    Extremely low volatility gets a small penalty because
+    expected moves are often limited.
     """
 
     if market is None:
@@ -16,7 +17,6 @@ def risk_score(market):
     volatility = market.get("volatility")
 
     if volatility is None:
-
         return {
             "score": 5,
             "reasons": ["Missing volatility"],
@@ -26,27 +26,32 @@ def risk_score(market):
 
     if volatility < 0.20:
 
-        score = 15
-        reasons.append("Extremely stable")
+        score = 5
+        reasons.append("Very low volatility")
 
     elif volatility < 0.35:
 
-        score = 12
-        reasons.append("Low volatility")
+        score = 8
+        reasons.append("Stable volatility")
 
-    elif volatility < 0.50:
+    elif volatility < 0.55:
+
+        score = 10
+        reasons.append("Ideal earnings volatility")
+
+    elif volatility < 0.75:
 
         score = 8
-        reasons.append("Moderate volatility")
+        reasons.append("Elevated volatility")
 
-    elif volatility < 0.70:
+    elif volatility < 1.00:
 
         score = 5
         reasons.append("High volatility")
 
     else:
 
-        score = 1
+        score = 2
         reasons.append("Extremely volatile")
 
     return {

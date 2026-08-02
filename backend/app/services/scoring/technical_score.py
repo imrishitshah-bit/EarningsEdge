@@ -2,13 +2,13 @@ def technical_score(market):
     """
     Scores technical setup (0-15)
 
-    Focuses on:
+    Uses:
     - RSI
     - MACD
-    - Trend above moving averages
+    - Trend vs moving averages
 
-    Penalizes:
-    - Extremely overbought conditions
+    Rewards healthy technicals without
+    being overly harsh.
     """
 
     if market is None:
@@ -26,9 +26,9 @@ def technical_score(market):
     sma50 = market.get("sma50")
     close = market.get("close")
 
-    # -----------------------------
-    # RSI
-    # -----------------------------
+    # ---------------------------------
+    # RSI (0-6)
+    # ---------------------------------
 
     if rsi is not None:
 
@@ -36,25 +36,29 @@ def technical_score(market):
             score += 6
             reasons.append("Healthy RSI")
 
-        elif 60 < rsi <= 70:
+        elif 35 <= rsi < 45:
             score += 4
+            reasons.append("Recovering RSI")
+
+        elif 60 < rsi <= 70:
+            score += 5
             reasons.append("Strong RSI")
 
-        elif 70 < rsi <= 80:
-            score += 1
-            reasons.append("Overbought")
-
-        elif rsi > 80:
-            score -= 5
-            reasons.append("Extremely overbought")
-
-        elif rsi < 30:
-            score -= 3
+        elif 25 <= rsi < 35:
+            score += 2
             reasons.append("Oversold")
 
-    # -----------------------------
-    # MACD
-    # -----------------------------
+        elif 70 < rsi <= 80:
+            score += 2
+            reasons.append("Slightly overbought")
+
+        elif rsi > 80:
+            score -= 2
+            reasons.append("Extremely overbought")
+
+    # ---------------------------------
+    # MACD (0-5)
+    # ---------------------------------
 
     if macd is not None:
 
@@ -63,12 +67,18 @@ def technical_score(market):
             reasons.append("Strong Bullish MACD")
 
         elif macd > 0:
-            score += 3
+            score += 4
             reasons.append("Bullish MACD")
 
-    # -----------------------------
-    # Trend
-    # -----------------------------
+        elif macd > -1:
+            score += 2
+
+        elif macd > -3:
+            score += 1
+
+    # ---------------------------------
+    # Trend (0-4)
+    # ---------------------------------
 
     if (
         close is not None
@@ -79,8 +89,14 @@ def technical_score(market):
         if close > sma20:
             score += 2
 
+        elif close >= sma20 * 0.98:
+            score += 1
+
         if close > sma50:
-            score += 3
+            score += 2
+
+        elif close >= sma50 * 0.98:
+            score += 1
 
         if close > sma20 and close > sma50:
             reasons.append("Trading above key moving averages")

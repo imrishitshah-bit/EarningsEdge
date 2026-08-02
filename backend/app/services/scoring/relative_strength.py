@@ -2,14 +2,14 @@ def relative_strength_score(market):
     """
     Scores relative strength (0-5)
 
-    Uses RSI as a proxy until true relative
-    performance vs SPY is implemented.
+    Temporary implementation using RSI until
+    true performance vs SPY is added.
     """
 
     if market is None:
         return {
             "score": 0,
-            "reasons": ["No relative strength data"],
+            "reasons": [],
         }
 
     rsi = market.get("rsi")
@@ -17,7 +17,7 @@ def relative_strength_score(market):
     if rsi is None:
         return {
             "score": 0,
-            "reasons": ["Missing RSI"],
+            "reasons": [],
         }
 
     reasons = []
@@ -27,7 +27,7 @@ def relative_strength_score(market):
         score = 5
         reasons.append("Excellent relative strength")
 
-    elif 48 <= rsi < 55:
+    elif 45 <= rsi < 55:
 
         score = 4
         reasons.append("Healthy relative strength")
@@ -37,14 +37,18 @@ def relative_strength_score(market):
         score = 3
         reasons.append("Strong but extended")
 
-    elif rsi > 75:
+    elif 35 <= rsi < 45:
 
-        score = 1
-        reasons.append("Overextended")
+        score = 3
+        reasons.append("Average relative strength")
+
+    elif 25 <= rsi < 35:
+
+        score = 2
 
     else:
 
-        score = 2
+        score = 1
         reasons.append("Weak relative strength")
 
     return {

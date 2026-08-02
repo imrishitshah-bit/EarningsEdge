@@ -148,7 +148,20 @@ def calculate_score(company, earnings, market, history=None):
     # ------------------------------------
     # Return
     # ------------------------------------
-
+    print("\n============================")
+    print(company["ticker"])
+    print("============================")
+    print(f"Expectation      : {expectation_score_value}")
+    print(f"Expectation Risk : {expectation_risk_value}")
+    print(f"Technical        : {technical_score_value}")
+    print(f"Historical       : {historical_score_value}")
+    print(f"Momentum         : {momentum_score_value}")
+    print(f"Risk             : {risk_score_value}")
+    print(f"Relative Strength: {relative_score_value}")
+    print(f"Sentiment        : {sentiment_score}")
+    print(f"Business Quality : {business_quality}")
+    print(f"Final Score      : {final_score}")
+    print("============================")
     return {
         "score": final_score,
         "business_quality": business_quality,
