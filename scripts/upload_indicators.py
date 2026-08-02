@@ -20,11 +20,7 @@ def clean(value):
             return None
 
     return value
-
-
-def main():
-
-    df = pd.read_csv("indicator_updates.csv")
+def upload_indicators(df: pd.DataFrame):
 
     records = []
 
@@ -43,7 +39,12 @@ def main():
 
     total = len(records)
 
-    print(f"Uploading {total} rows in {(total + BATCH_SIZE - 1) // BATCH_SIZE} batches...")
+    if total == 0:
+        return
+
+    print(
+        f"Uploading {total} rows in {(total + BATCH_SIZE - 1) // BATCH_SIZE} batches..."
+    )
 
     for i in range(0, total, BATCH_SIZE):
 
@@ -62,8 +63,13 @@ def main():
             f"Uploaded {min(i + BATCH_SIZE, total)}/{total}"
         )
 
-    print("\nDone!")
+def main():
 
+    df = pd.read_csv("indicator_updates.csv")
+
+    upload_indicators(df)
+
+    print("\nDone!")
 
 if __name__ == "__main__":
     main()

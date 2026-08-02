@@ -23,6 +23,38 @@ def get_company_profile(symbol: str):
 
     return data[0]
 
+def update_company_profile(company_id: int, ticker: str):
+
+    profile = get_company_profile(ticker)
+
+    if profile is None:
+        print(f"No profile found for {ticker}")
+        return False
+
+    (
+        supabase.table("companies")
+        .update(
+            {
+                "company_name": profile.get("companyName"),
+                "exchange": profile.get("exchangeShortName"),
+                "sector": profile.get("sector"),
+                "industry": profile.get("industry"),
+                "market_cap": profile.get("marketCap"),
+                "website": profile.get("website"),
+                "logo_url": profile.get("image"),
+                "country": profile.get("country"),
+                "currency": profile.get("currency"),
+                "description": profile.get("description"),
+                "ceo": profile.get("ceo"),
+                "full_time_employees": profile.get("fullTimeEmployees"),
+                "ipo_date": profile.get("ipoDate"),
+            }
+        )
+        .eq("id", company_id)
+        .execute()
+    )
+
+    return True
 
 def main():
 
@@ -45,35 +77,14 @@ def main():
 
         try:
 
-            profile = get_company_profile(ticker)
-
-            if profile is None:
-                print("No profile found.\n")
-                continue
-
-            (
-                supabase.table("companies")
-                .update(
-                    {
-                        "company_name": profile.get("companyName"),
-                        "exchange": profile.get("exchangeShortName"),
-                        "sector": profile.get("sector"),
-                        "industry": profile.get("industry"),
-                        "market_cap": profile.get("marketCap"),
-                        "website": profile.get("website"),
-                        "logo_url": profile.get("image"),
-                        "country": profile.get("country"),
-                        "currency": profile.get("currency"),
-                        "description": profile.get("description"),
-                    }
-                )
-                .eq("id", company["id"])
-                .execute()
+            success = update_company_profile(
+                company["id"],
+                ticker,
             )
 
-            updated += 1
-
-            print("✓ Updated\n")
+            if success:
+                updated += 1
+                print("✓ Updated\n")
 
         except Exception as e:
 
@@ -82,7 +93,6 @@ def main():
     print("==============================")
     print(f"Finished! Updated {updated} companies.")
     print("==============================")
-
 
 if __name__ == "__main__":
     main()

@@ -2,7 +2,16 @@ from datetime import datetime
 
 from backend.app.database import supabase
 from backend.app.services.score_service import get_score
+def update_company_score(company_id: int, ticker: str):
 
+    score = get_score(ticker)
+
+    if score is None:
+        return None
+
+    score["company_id"] = company_id
+
+    return score
 
 def update_all_scores():
 
@@ -96,7 +105,10 @@ def update_all_scores():
 
         try:
 
-            score = get_score(ticker)
+            score = update_company_score(
+            company["id"],
+            ticker,
+            )
 
             if score is None:
                 print(f"⚠ Skipping {ticker} (no score)")
