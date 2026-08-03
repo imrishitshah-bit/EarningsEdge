@@ -1,5 +1,5 @@
 from scripts.config import supabase
-from scripts.providers.historical_earnings import get_historical_earnings
+from scripts.historical_earnings import get_historical_earnings
 def fetch_historical_earnings(company_id: int, ticker: str):
 
     print(f"Fetching {ticker}...")
