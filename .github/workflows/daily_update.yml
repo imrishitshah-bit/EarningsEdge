@@ -34,4 +34,4 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
 
         run: |
-          python scripts/daily_update.py
+          python -m scripts.daily_update
