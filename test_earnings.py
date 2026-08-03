@@ -1,3 +1,7 @@
-from scripts.create_company import create_company
+import requests
 
-create_company("TEST123")
+url = "https://financialmodelingprep.com/stable/earnings?symbol=AMD&apikey=MJyoYdUyd7hYBZo81PrEIJqPglyp125G"
+
+data = requests.get(url).json()
+
+print(data[0])
