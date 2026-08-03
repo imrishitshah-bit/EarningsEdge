@@ -5,7 +5,7 @@ from scripts.update_company_profiles import main as update_profiles
 from scripts.fetch_market_data import main as fetch_market
 from scripts.calculate_indicators import main as calculate
 from scripts.upload_indicators import main as upload
-from backend.app.update_scores import update_all_scores
+from scripts.update_scores import update_all_scores
 
 
 def run_step(name, func):
