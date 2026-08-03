@@ -1,6 +1,6 @@
 import time
 
-from scripts.update_earnings import main as update_earnings
+from scripts.update_earnings import main as aaaa
 from scripts.update_company_profiles import main as update_profiles
 from scripts.fetch_market_data import main as fetch_market
 from scripts.calculate_indicators import main as calculate
@@ -44,7 +44,7 @@ def main():
 
     results = []
 
-    results.append(run_step("Updating earnings", update_earnings))
+    results.append(run_step("Updating earnings", aaaa))
     results.append(run_step("Updating company profiles", update_profiles))
     results.append(run_step("Fetching market data", fetch_market))
     results.append(run_step("Calculating indicators", calculate))
