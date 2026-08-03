@@ -125,3 +125,5 @@ def update_scores():
 
 if __name__ == "__main__":
     update_scores()
+
+update_all_scores = update_scores

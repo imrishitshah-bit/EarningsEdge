@@ -1,6 +1,14 @@
+import sys
 import time
+from pathlib import Path
 
-from scripts.update_earnings import main as aaaa
+# When executed directly as a script, Python sets sys.path[0] to the scripts folder.
+# Add the project root so package imports like `from scripts...` work correctly.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from scripts.update_earnings import main as update_earnings
 from scripts.update_company_profiles import main as update_profiles
 from scripts.fetch_market_data import main as fetch_market
 from scripts.calculate_indicators import main as calculate
@@ -44,7 +52,7 @@ def main():
 
     results = []
 
-    results.append(run_step("Updating earnings", aaaa))
+    results.append(run_step("Updating earnings", update_earnings))
     results.append(run_step("Updating company profiles", update_profiles))
     results.append(run_step("Fetching market data", fetch_market))
     results.append(run_step("Calculating indicators", calculate))

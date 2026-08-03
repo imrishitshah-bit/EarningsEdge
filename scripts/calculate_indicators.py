@@ -1,110 +1,99 @@
-def calculate_score(company, earnings, market, history=None):
-    """
-    Calculates the final EarningsEdge Score (0-100)
-    using weighted category scores.
-    """
-    from backend.app.services.scoring.expectation_score import expectation_score
-    from backend.app.services.scoring.technical_score import technical_score
-    from backend.app.services.scoring.momentum_score import momentum_score
-    from backend.app.services.scoring.risk_score import risk_score
-    from backend.app.services.scoring.historical_score import historical_score
-    from backend.app.services.scoring.relative_strength_score import relative_strength_score
-    reasons = []
+import pandas as pd
 
-    # ------------------------------------
-    # Individual Modules
-    # ------------------------------------
+from scripts.config import supabase
 
-    business = expectation_score(company, earnings)
-    historical = historical_score(history)
-    technical = technical_score(market)
-    momentum = momentum_score(market)
-    risk = risk_score(market)
-    relative = relative_strength_score(market)
 
-    reasons.extend(business["reasons"])
-    reasons.extend(historical["reasons"])
-    reasons.extend(technical["reasons"])
-    reasons.extend(momentum["reasons"])
-    reasons.extend(risk["reasons"])
-    reasons.extend(relative["reasons"])
+def _calculate_rsi(series: pd.Series, window: int = 14) -> pd.Series:
+    delta = series.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
 
-    # ------------------------------------
-    # Weighted Final Score
-    # ------------------------------------
+    avg_gain = gain.rolling(window=window, min_periods=window).mean()
+    avg_loss = loss.rolling(window=window, min_periods=window).mean()
 
-    weights = {
-        "business": 0.25,
-        "historical": 0.25,
-        "technical": 0.20,
-        "momentum": 0.15,
-        "risk": 0.10,
-        "relative": 0.05,
-    }
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
 
-    final_score = (
-        business["score"] * weights["business"]
-        + historical["score"] * weights["historical"]
-        + technical["score"] * weights["technical"]
-        + momentum["score"] * weights["momentum"]
-        + risk["score"] * weights["risk"]
-        + relative["score"] * weights["relative"]
+    return rsi
+
+
+def _calculate_macd(series: pd.Series, fast: int = 12, slow: int = 26) -> pd.Series:
+    fast_ema = series.ewm(span=fast, adjust=False).mean()
+    slow_ema = series.ewm(span=slow, adjust=False).mean()
+    return fast_ema - slow_ema
+
+
+def calculate_indicators(company_id: int, ticker: str):
+    """Calculate technical indicators for one company."""
+
+    print(f"Calculating indicators for {ticker}...")
+
+    rows = (
+        supabase.table("market_data")
+        .select("id,close,trading_date")
+        .eq("company_id", company_id)
+        .order("trading_date", desc=False)
+        .execute()
+        .data
     )
 
-    final_score = round(final_score)
+    if not rows:
+        print(f"No market data found for {ticker}.")
+        return None
 
-    # ------------------------------------
-    # Confidence
-    # ------------------------------------
+    df = pd.DataFrame(rows)
+    df = df.sort_values("trading_date")
+    df = df[df["close"].notna()].copy()
+    df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-    confidence_points = 100
+    df["rsi"] = _calculate_rsi(df["close"])
+    df["macd"] = _calculate_macd(df["close"])
+    df["sma20"] = df["close"].rolling(20).mean()
+    df["sma50"] = df["close"].rolling(50).mean()
+    df["volatility"] = df["close"].pct_change().rolling(20).std()
 
-    if history is None or len(history) < 4:
-        confidence_points -= 20
+    return df[["id", "rsi", "macd", "sma20", "sma50", "volatility"]]
 
-    if market is None:
-        confidence_points -= 20
 
-    if earnings is None:
-        confidence_points -= 20
+def main():
+    """Calculate technical indicators for all companies and write them to indicator_updates.csv."""
 
-    if confidence_points >= 90:
-        confidence = "Very High"
-    elif confidence_points >= 75:
-        confidence = "High"
-    elif confidence_points >= 60:
-        confidence = "Medium"
-    elif confidence_points >= 40:
-        confidence = "Low"
-    else:
-        confidence = "Very Low"
+    company_ids = (
+        supabase.table("market_data")
+        .select("company_id")
+        .execute()
+        .data
+    )
 
-    # ------------------------------------
-    # Remove Duplicate Reasons
-    # ------------------------------------
+    if not company_ids:
+        print("No market_data rows found.")
+        return None
 
-    unique_reasons = []
+    company_ids = sorted({row["company_id"] for row in company_ids if row.get("company_id") is not None})
+    indicator_frames = []
 
-    for reason in reasons:
-        if reason not in unique_reasons:
-            unique_reasons.append(reason)
+    for company_id in company_ids:
+        company = (
+            supabase.table("companies")
+            .select("ticker")
+            .eq("id", company_id)
+            .single()
+            .execute()
+            .data
+        )
 
-    # ------------------------------------
-    # Breakdown
-    # ------------------------------------
+        ticker = company["ticker"] if company else str(company_id)
+        indicators = calculate_indicators(company_id, ticker)
 
-    breakdown = {
-        "business_quality": business["score"],
-        "historical": historical["score"],
-        "technical": technical["score"],
-        "momentum": momentum["score"],
-        "risk": risk["score"],
-        "relative_strength": relative["score"],
-    }
+        if indicators is not None:
+            indicator_frames.append(indicators)
 
-    return {
-        "score": final_score,
-        "confidence": confidence,
-        "reasons": unique_reasons,
-        "breakdown": breakdown,
-    }
+    if not indicator_frames:
+        print("No indicator rows were generated.")
+        return None
+
+    output_df = pd.concat(indicator_frames, ignore_index=True)
+    output_df.to_csv("indicator_updates.csv", index=False)
+
+    print(f"Wrote {len(output_df)} indicator rows to indicator_updates.csv")
+    return output_df
