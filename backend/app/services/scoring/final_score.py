@@ -53,41 +53,33 @@ def calculate_score(company, earnings, market, history=None):
     reasons.extend(relative["reasons"])
     reasons.extend(historical["reasons"])
 
-    # ------------------------------------
-    # Sentiment
-    # ------------------------------------
-
-    sentiment_score = 5
-
-    # ------------------------------------
-    # Business Quality
+        # ------------------------------------
+    # Weighted Final Score
     # ------------------------------------
 
-    business_quality = (
-        expectation_score_value
-        + technical_score_value
-        + historical_score_value
-        + momentum_score_value
-        + risk_score_value
-        + relative_score_value
-    )
+    weights = {
+        "business": 0.25,
+        "historical": 0.25,
+        "technical": 0.20,
+        "momentum": 0.15,
+        "risk": 0.10,
+        "relative": 0.05,
+    }
 
-    business_quality = min(95, business_quality)
+    business_quality = expectation_score_value
 
-    # ------------------------------------
-    # Final Upside Score
-    # ------------------------------------
+    sentiment_score = 0
 
     final_score = (
-        business_quality
-        - expectation_risk_value
-        + sentiment_score
+        expectation_score_value * weights["business"]
+        + historical_score_value * weights["historical"]
+        + technical_score_value * weights["technical"]
+        + momentum_score_value * weights["momentum"]
+        + risk_score_value * weights["risk"]
+        + relative_score_value * weights["relative"]
     )
 
-    final_score = max(
-        0,
-        min(100, round(final_score))
-    )
+    final_score = round(final_score)
 
     # ------------------------------------
     # Confidence
@@ -135,7 +127,7 @@ def calculate_score(company, earnings, market, history=None):
     # ------------------------------------
 
     breakdown = {
-        "business_quality": business_quality,
+        "business_quality": expectation_score_value,
         "expectation_risk": expectation_risk_value,
         "technical": technical_score_value,
         "historical": historical_score_value,

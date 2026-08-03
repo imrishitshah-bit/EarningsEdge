@@ -1,69 +1,56 @@
 def risk_score(market):
     """
-    Risk Score (0-100)
+    Scores risk (0-100)
 
-    Scores volatility for earnings trading.
-
-    Moderate volatility is preferred.
-    Extremely low or extremely high
-    volatility receives lower scores.
+    Higher score = more favorable risk profile.
+    Volatility reduces the score but doesn't dominate it.
     """
 
     if market is None:
         return {
             "score": 50,
-            "reasons": ["No volatility data"],
+            "reasons": [],
         }
 
     volatility = market.get("volatility")
 
     if volatility is None:
-
         return {
             "score": 50,
-            "reasons": ["Missing volatility"],
+            "reasons": [],
         }
 
     reasons = []
 
-    # ---------------------------------
-    # Volatility
-    # ---------------------------------
+    if volatility < 0.20:
 
-    if 0.30 <= volatility <= 0.50:
-
-        score = 100
-        reasons.append("Ideal earnings volatility")
-
-    elif 0.20 <= volatility < 0.30:
-
-        score = 90
-        reasons.append("Low volatility")
-
-    elif 0.50 < volatility <= 0.65:
-
-        score = 80
-        reasons.append("Higher volatility with good upside")
-
-    elif 0.10 <= volatility < 0.20:
-
-        score = 65
+        score = 95
         reasons.append("Very stable")
 
-    elif 0.65 < volatility <= 0.80:
+    elif volatility < 0.35:
+
+        score = 85
+        reasons.append("Low volatility")
+
+    elif volatility < 0.50:
+
+        score = 70
+        reasons.append("Moderate volatility")
+
+    elif volatility < 0.70:
 
         score = 55
         reasons.append("Elevated volatility")
 
-    elif volatility > 0.80:
+    elif volatility < 1.00:
 
-        score = 25
-        reasons.append("Extremely volatile")
+        score = 40
+        reasons.append("High volatility")
 
     else:
 
-        score = 40
-        reasons.append("Unusually low volatility")
+        score = 25
+        reasons.append("Extremely volatile")
 
     return {
         "score": score,
