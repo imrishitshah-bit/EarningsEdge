@@ -1,3 +1,5 @@
+import time
+
 from scripts.update_earnings import main as update_earnings
 from scripts.update_company_profiles import main as update_profiles
 from scripts.fetch_market_data import main as fetch_market
@@ -6,27 +8,61 @@ from scripts.upload_indicators import main as upload
 from backend.app.update_scores import update_all_scores
 
 
+def run_step(name, func):
+    """Runs one pipeline step with logging and error handling."""
+
+    print(f"\n{name}...")
+
+    start = time.time()
+
+    try:
+        func()
+
+        elapsed = time.time() - start
+
+        print(f"✓ {name} completed ({elapsed:.1f}s)")
+
+        return True
+
+    except Exception as e:
+
+        elapsed = time.time() - start
+
+        print(f"✗ {name} failed ({elapsed:.1f}s)")
+        print(f"Error: {e}")
+
+        return False
+
+
 def main():
 
-    print("Updating earnings...")
-    update_earnings()
+    overall_start = time.time()
 
-    print("Updating company profiles...")
-    update_profiles()
+    print("\n========================================")
+    print("      EarningsEdge Daily Update")
+    print("========================================")
 
-    print("Updating market data...")
-    fetch_market()
+    results = []
 
-    print("Calculating indicators...")
-    calculate()
+    results.append(run_step("Updating earnings", update_earnings))
+    results.append(run_step("Updating company profiles", update_profiles))
+    results.append(run_step("Fetching market data", fetch_market))
+    results.append(run_step("Calculating indicators", calculate))
+    results.append(run_step("Uploading indicators", upload))
+    results.append(run_step("Generating AI scores", update_all_scores))
 
-    print("Uploading indicators...")
-    upload()
+    total_time = time.time() - overall_start
 
-    print("Generating AI scores...")
-    update_all_scores()
+    successful = sum(results)
+    failed = len(results) - successful
 
-    print("\nDaily update complete.")
+    print("\n========================================")
+    print("Daily Update Summary")
+    print("========================================")
+    print(f"Successful steps : {successful}")
+    print(f"Failed steps     : {failed}")
+    print(f"Total runtime    : {total_time:.1f} seconds")
+    print("========================================\n")
 
 
 if __name__ == "__main__":
