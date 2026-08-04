@@ -14,6 +14,7 @@ from scripts.fetch_market_data import main as fetch_market
 from scripts.calculate_indicators import main as calculate
 from scripts.upload_indicators import main as upload
 from scripts.update_scores import update_all_scores
+from scripts.update_sector_rotation import main as update_sector_rotation
 
 
 def run_step(name, func):
@@ -58,6 +59,7 @@ def main():
     results.append(run_step("Calculating indicators", calculate))
     results.append(run_step("Uploading indicators", upload))
     results.append(run_step("Generating AI scores", update_all_scores))
+    results.append(run_step("Updating Sector Rotation", update_sector_rotation))
 
     total_time = time.time() - overall_start
 
