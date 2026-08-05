@@ -19,44 +19,48 @@ def get_sector_rotation():
 
 def get_companies_by_sector(sector: str):
     """
-    Returns all companies in a sector ordered by EarningsEdge Score.
+    Returns all companies in a sector ordered by Edge Score.
     """
 
     companies = (
         supabase.table("companies")
-        .select(
-            """
-            ticker,
-            company_name,
-            sector,
-            scores (
-                ai_score,
-                recommendation,
-                confidence,
-                rank,
-                earnings_date
-            )
-            """
-        )
+        .select("*")
         .eq("sector", sector)
         .execute()
         .data
     )
 
+    if not companies:
+        return []
+
+    scores = (
+        supabase.table("scores")
+        .select("*")
+        .execute()
+        .data
+    )
+
+    score_lookup = {
+        score["company_id"]: score
+        for score in scores
+    }
+
     results = []
 
     for company in companies:
 
-        if not company["scores"]:
-            continue
+        score = score_lookup.get(company["id"])
 
-        score = company["scores"][0]
+        if not score:
+            continue
 
         results.append(
             {
                 "ticker": company["ticker"],
                 "company_name": company["company_name"],
                 "sector": company["sector"],
+                "industry": company["industry"],
+                "logo_url": company["logo_url"],
                 "score": score["ai_score"],
                 "recommendation": score["recommendation"],
                 "confidence": score["confidence"],
