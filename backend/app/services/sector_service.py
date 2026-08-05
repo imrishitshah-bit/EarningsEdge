@@ -22,6 +22,9 @@ def get_companies_by_sector(sector: str):
     Returns all companies in a sector ordered by Edge Score.
     """
 
+    print(f"\n========== DEBUG ==========")
+    print(f"Requested sector: '{sector}'")
+
     companies = (
         supabase.table("companies")
         .select("*")
@@ -30,8 +33,8 @@ def get_companies_by_sector(sector: str):
         .data
     )
 
-    if not companies:
-        return []
+    print(f"Companies returned: {len(companies)}")
+    print(companies)
 
     scores = (
         supabase.table("scores")
@@ -39,6 +42,8 @@ def get_companies_by_sector(sector: str):
         .execute()
         .data
     )
+
+    print(f"Scores returned: {len(scores)}")
 
     score_lookup = {
         score["company_id"]: score
@@ -51,7 +56,12 @@ def get_companies_by_sector(sector: str):
 
         score = score_lookup.get(company["id"])
 
-        if not score:
+        if score is None:
+            print(
+                f"No score found for "
+                f"{company['ticker']} "
+                f"(company_id={company['id']})"
+            )
             continue
 
         results.append(
@@ -70,8 +80,11 @@ def get_companies_by_sector(sector: str):
         )
 
     results.sort(
-        key=lambda x: x["score"],
+        key=lambda x: x["score"] or 0,
         reverse=True,
     )
+
+    print(f"Returning {len(results)} companies")
+    print("===========================\n")
 
     return results
