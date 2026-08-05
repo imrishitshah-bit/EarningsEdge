@@ -64,3 +64,15 @@ def debug():
         "company_count": len(companies),
         "score_count": len(scores),
     }
+
+@app.get("/render-test")
+def render_test():
+    companies = (
+        supabase.table("companies")
+        .select("ticker,sector")
+        .eq("sector", "Technology")
+        .execute()
+        .data
+    )
+
+    return companies
