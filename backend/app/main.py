@@ -21,7 +21,8 @@ app.include_router(earnings_router)
 app.include_router(companies_router)
 app.include_router(scores_router)
 app.include_router(rankings_router)
-
+app.include_router(prediction_stats_router)
+app.include_router(sector_router)
 
 @app.get("/")
 def home():
