@@ -3,7 +3,7 @@ from backend.app.database import supabase
 
 def get_sector_rotation():
     """
-    Returns sector rankings.
+    Returns sector rankings ordered by rank.
     """
 
     sectors = (
@@ -22,31 +22,49 @@ def get_companies_by_sector(sector: str):
     Returns all companies in a sector ordered by Edge Score.
     """
 
-    print(f"\n========== DEBUG ==========")
-    print(f"Requested sector: '{sector}'")
+    # ------------------------------------
+    # Load companies in requested sector
+    # ------------------------------------
 
     companies = (
         supabase.table("companies")
-        .select("*")
+        .select(
+            "ticker,company_name,sector,industry,logo_url"
+        )
         .eq("sector", sector)
         .execute()
         .data
     )
 
-    print(f"Companies returned: {len(companies)}")
-    print(companies)
+    if not companies:
+        return []
+
+    # ------------------------------------
+    # Load scores
+    # ------------------------------------
 
     scores = (
         supabase.table("scores")
-        .select("*")
+        .select(
+            """
+            ticker,
+            ai_score,
+            recommendation,
+            confidence,
+            rank,
+            earnings_date
+            """
+        )
         .execute()
         .data
     )
 
-    print(f"Scores returned: {len(scores)}")
+    # ------------------------------------
+    # Match scores by ticker
+    # ------------------------------------
 
     score_lookup = {
-        score["company_id"]: score
+        score["ticker"]: score
         for score in scores
     }
 
@@ -54,14 +72,9 @@ def get_companies_by_sector(sector: str):
 
     for company in companies:
 
-        score = score_lookup.get(company["id"])
+        score = score_lookup.get(company["ticker"])
 
         if score is None:
-            print(
-                f"No score found for "
-                f"{company['ticker']} "
-                f"(company_id={company['id']})"
-            )
             continue
 
         results.append(
@@ -79,12 +92,13 @@ def get_companies_by_sector(sector: str):
             }
         )
 
+    # ------------------------------------
+    # Highest score first
+    # ------------------------------------
+
     results.sort(
-        key=lambda x: x["score"] or 0,
+        key=lambda x: x["score"] if x["score"] is not None else 0,
         reverse=True,
     )
-
-    print(f"Returning {len(results)} companies")
-    print("===========================\n")
 
     return results

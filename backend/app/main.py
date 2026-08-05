@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from backend.app.database import supabase
 from backend.app.routes.dashboard import router as dashboard_router
 from backend.app.routes.homepage import router as homepage_router
 from backend.app.routes.earnings import router as earnings_router
@@ -37,4 +38,29 @@ def home():
 def health():
     return {
         "status": "healthy",
+    }
+from backend.app.database import supabase
+
+@app.get("/debug")
+def debug():
+
+    companies = (
+        supabase.table("companies")
+        .select("id,ticker,sector")
+        .execute()
+        .data
+    )
+
+    scores = (
+        supabase.table("scores")
+        .select("company_id,ticker,ai_score")
+        .execute()
+        .data
+    )
+
+    return {
+        "companies": companies[:10],
+        "scores": scores[:10],
+        "company_count": len(companies),
+        "score_count": len(scores),
     }
