@@ -7,7 +7,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
+from scripts.update_prediction_results import main as update_prediction_results
 from scripts.update_earnings import main as update_earnings
 from scripts.update_company_profiles import main as update_profiles
 from scripts.fetch_market_data import main as fetch_market
@@ -60,7 +60,7 @@ def main():
     results.append(run_step("Uploading indicators", upload))
     results.append(run_step("Generating AI scores", update_all_scores))
     results.append(run_step("Updating Sector Rotation", update_sector_rotation))
-
+    results.append(run_step("Checking prediction results", update_prediction_results))
     total_time = time.time() - overall_start
 
     successful = sum(results)

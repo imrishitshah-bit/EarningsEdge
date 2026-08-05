@@ -42,12 +42,10 @@ def update_scores():
 
             score = get_score(ticker)
 
-            # Skip failures
             if score is None:
                 print(f"Skipping {ticker} (No score)")
                 continue
 
-            # Skip companies without upcoming earnings
             if "grade" not in score:
                 print(f"Skipping {ticker} (No upcoming earnings)")
                 continue
@@ -68,14 +66,50 @@ def update_scores():
     )
 
     # -----------------------------------------
-    # Save Scores
+    # Save Rankings + Prediction History
     # -----------------------------------------
 
     for rank, score in enumerate(rankings, start=1):
 
         company_id = company_lookup[score["ticker"]]
 
-        data = {
+        prediction = {
+
+            "company_id": company_id,
+
+            "ticker": score["ticker"],
+            "company_name": score["company_name"],
+
+            "earnings_date": score["earnings_date"],
+
+            "ai_score": score["ai_score"],
+            "grade": score["grade"],
+
+            "recommendation": score["recommendation"],
+            "confidence": score["confidence"],
+
+            "expected_move": score.get("expected_move"),
+
+            "risk_level": score["risk_level"],
+
+            "breakdown": score["breakdown"],
+
+            "strengths": score["strengths"],
+            "weaknesses": score["weaknesses"],
+            "reasons": score["reasons"],
+
+        }
+
+        (
+            supabase.table("prediction_history")
+            .upsert(
+                prediction,
+                on_conflict="company_id,earnings_date",
+            )
+            .execute()
+        )
+
+        score_data = {
 
             "company_id": company_id,
 
@@ -112,7 +146,11 @@ def update_scores():
 
         }
 
-        supabase.table("scores").upsert(data).execute()
+        (
+            supabase.table("scores")
+            .upsert(score_data)
+            .execute()
+        )
 
         print(
             f"{rank:>3}. "
@@ -125,5 +163,6 @@ def update_scores():
 
 if __name__ == "__main__":
     update_scores()
+
 
 update_all_scores = update_scores

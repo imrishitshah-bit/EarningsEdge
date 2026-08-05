@@ -5,7 +5,12 @@ from backend.app.routes.earnings import router as earnings_router
 from backend.app.routes.companies import router as companies_router
 from backend.app.routes.scores import router as scores_router
 from backend.app.routes.rankings import router as rankings_router
-
+from backend.app.api.prediction_stats import (
+    router as prediction_stats_router,
+)
+from backend.app.api.sector import (
+    router as sector_router,
+)
 app = FastAPI(
     title="EarningsEdge API",
     version="1.0.0",
