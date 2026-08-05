@@ -67,12 +67,12 @@ def debug():
 
 @app.get("/render-test")
 def render_test():
-    companies = (
-        supabase.table("companies")
-        .select("ticker,sector")
-        .eq("sector", "Technology")
+
+    scores = (
+        supabase.table("scores")
+        .select("ticker,ai_score")
         .execute()
         .data
     )
 
-    return companies
+    return scores
