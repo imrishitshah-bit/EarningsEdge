@@ -16,7 +16,7 @@ def get_sector_rotation():
 
     return sectors
 
-
+raise Exception("NEW SECTOR SERVICE IS RUNNING")
 def get_companies_by_sector(sector: str):
     """
     Returns all companies in a sector ordered by Edge Score.
