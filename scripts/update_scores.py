@@ -100,7 +100,8 @@ def update_scores():
 
         }
 
-        (
+        
+        response = (
             supabase.table("prediction_history")
             .upsert(
                 prediction,
@@ -108,6 +109,10 @@ def update_scores():
             )
             .execute()
         )
+        print(
+            f"Saved prediction for {score['ticker']} "
+            f"({score['earnings_date']})"
+            )
 
         score_data = {
 
