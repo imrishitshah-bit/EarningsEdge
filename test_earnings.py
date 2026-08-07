@@ -1,14 +1,28 @@
-from fastapi import APIRouter
-from backend.app.database import supabase
+import csv
+import io
+import os
+import requests
+from dotenv import load_dotenv
 
-router = APIRouter()
+load_dotenv()
 
-@router.get("/debug/companies")
-def debug_companies():
-    return (
-        supabase.table("companies")
-        .select("ticker,sector")
-        .limit(10)
-        .execute()
-        .data
-    )
+API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
+
+ticker = "SHOP"
+
+url = "https://www.alphavantage.co/query"
+
+params = {
+    "function": "EARNINGS_ESTIMATES",
+    "symbol": ticker,
+    "apikey": API_KEY,
+}
+
+response = requests.get(
+    url,
+    params=params,
+    timeout=30,
+)
+
+print("STATUS:", response.status_code)
+print(response.text)
